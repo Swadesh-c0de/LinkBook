@@ -33,8 +33,10 @@ async function handleRequest(request: NextRequest, pathSegments: string[]) {
   const path = pathSegments.join('/');
   const searchParams = request.nextUrl.searchParams.toString();
   
-  // Use environment variable for flexibility between local and production
-  const backendBaseUrl = process.env.BACKEND_API_URL || 'https://contacts-management-system-backend.vercel.app/api';
+  let backendBaseUrl = process.env.BACKEND_API_URL || 'https://contacts-management-system-backend.vercel.app/api';
+  if (backendBaseUrl.startsWith('http://') && backendBaseUrl.includes('vercel.app')) {
+    backendBaseUrl = backendBaseUrl.replace('http://', 'https://');
+  }
   const url = `${backendBaseUrl}/${path}${searchParams ? `?${searchParams}` : ''}`;
 
   const headers = new Headers(request.headers);
@@ -50,13 +52,14 @@ async function handleRequest(request: NextRequest, pathSegments: string[]) {
       cache: 'no-store',
     });
 
-    const responseData = await response.arrayBuffer();
+    const isNullBodyStatus = [101, 204, 205, 304].includes(response.status);
+    const responseData = isNullBodyStatus ? null : await response.arrayBuffer();
     const responseHeaders = new Headers(response.headers);
     
     responseHeaders.delete('content-encoding');
     responseHeaders.delete('transfer-encoding');
 
-    if (response.status >= 400 && process.env.NODE_ENV !== 'production') {
+    if (!isNullBodyStatus && response.status >= 400 && process.env.NODE_ENV !== 'production' && responseData) {
       try {
         const text = new TextDecoder().decode(responseData);
         console.error(`Backend returned ${response.status}:`, text);
@@ -65,10 +68,21 @@ async function handleRequest(request: NextRequest, pathSegments: string[]) {
       }
     }
 
-    return new NextResponse(responseData, {
+    const nextResponse = new NextResponse(responseData, {
       status: response.status,
       headers: responseHeaders,
     });
+
+    // Ensure all Set-Cookie headers are forwarded cleanly without being merged
+    if (typeof (response.headers as any).getSetCookie === 'function') {
+      const cookies = (response.headers as any).getSetCookie();
+      if (cookies && cookies.length > 0) {
+        nextResponse.headers.delete('set-cookie');
+        cookies.forEach((c: string) => nextResponse.headers.append('set-cookie', c));
+      }
+    }
+
+    return nextResponse;
   } catch (error) {
     if (process.env.NODE_ENV !== 'production') {
       console.error('Proxy error:', error);
