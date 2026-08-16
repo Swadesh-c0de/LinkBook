@@ -1,17 +1,18 @@
 "use client";
 
 import * as React from "react";
+import { flushSync } from "react-dom";
 import { Moon, Sun } from "lucide-react";
 import { useTheme } from "next-themes";
 
 export function ThemeToggle() {
-  const { theme, setTheme, resolvedTheme } = useTheme();
+  const { setTheme, resolvedTheme } = useTheme();
   const [mounted, setMounted] = React.useState(false);
 
   React.useEffect(() => setMounted(true), []);
 
   if (!mounted) {
-    return <div className="h-9 w-9" />;
+    return <div className="h-10 w-10" />;
   }
 
   const isDark = resolvedTheme === "dark";
@@ -19,8 +20,10 @@ export function ThemeToggle() {
   const toggleTheme = (e: React.MouseEvent<HTMLButtonElement>) => {
     const newTheme = isDark ? "light" : "dark";
 
+    // Fallback for browsers without View Transitions or users with reduced motion
     if (
-      !document.startViewTransition ||
+      typeof document === "undefined" ||
+      !("startViewTransition" in document) ||
       window.matchMedia("(prefers-reduced-motion: reduce)").matches
     ) {
       setTheme(newTheme);
@@ -30,53 +33,58 @@ export function ThemeToggle() {
     const buttonElement = e.currentTarget;
     const rect = buttonElement.getBoundingClientRect();
     
-    // Check if clientX/Y from click/touch event is valid and within button bounds
-    const hasValidPointer =
-      e.clientX > 0 &&
-      e.clientY > 0 &&
-      e.clientX >= rect.left &&
-      e.clientX <= rect.right &&
-      e.clientY >= rect.top &&
-      e.clientY <= rect.bottom;
-
-    const x = hasValidPointer ? e.clientX : rect.left + rect.width / 2;
-    const y = hasValidPointer ? e.clientY : rect.top + rect.height / 2;
+    // Always expand from the center of the toggle button for consistent symmetry
+    const x = rect.left + rect.width / 2;
+    const y = rect.top + rect.height / 2;
 
     const endRadius = Math.hypot(
       Math.max(x, window.innerWidth - x),
       Math.max(y, window.innerHeight - y)
     );
 
+    // Tactile button bounce
     buttonElement.animate(
       [
         { transform: "scale(1)" },
-        { transform: "scale(1.2)" },
-        { transform: "scale(1)" }
+        { transform: "scale(0.88)" },
+        { transform: "scale(1.08)" },
+        { transform: "scale(1)" },
       ],
-      { duration: 300, easing: "cubic-bezier(0.4, 0, 0.2, 1)" }
+      { duration: 350, easing: "cubic-bezier(0.23, 1, 0.32, 1)" }
     );
 
-    const transition = document.startViewTransition(() => {
+    try {
+      const transition = (document as any).startViewTransition(() => {
+        flushSync(() => {
+          setTheme(newTheme);
+        });
+      });
+
+      transition.ready
+        .then(() => {
+          const clipPath = [
+            `circle(0px at ${x}px ${y}px)`,
+            `circle(${endRadius}px at ${x}px ${y}px)`,
+          ];
+
+          document.documentElement.animate(
+            {
+              clipPath: clipPath,
+            },
+            {
+              duration: 750,
+              easing: "cubic-bezier(0.4, 0, 0.2, 1)",
+              pseudoElement: "::view-transition-new(root)",
+            }
+          );
+        })
+        .catch(() => {
+          // Gracefully catch if transition was skipped or aborted
+        });
+    } catch {
+      // Fallback if startViewTransition throws synchronously
       setTheme(newTheme);
-    });
-
-    transition.ready.then(() => {
-      const clipPath = [
-        `circle(0px at ${x}px ${y}px)`,
-        `circle(${endRadius}px at ${x}px ${y}px)`,
-      ];
-
-      document.documentElement.animate(
-        {
-          clipPath: clipPath,
-        },
-        {
-          duration: 500,
-          easing: "cubic-bezier(0.4, 0, 0.2, 1)",
-          pseudoElement: "::view-transition-new(root)",
-        }
-      );
-    });
+    }
   };
 
   return (
@@ -87,13 +95,13 @@ export function ThemeToggle() {
     >
       <div className="relative h-5 w-5 flex items-center justify-center pointer-events-none z-10">
         <Sun
-          className={`absolute h-full w-full transition-all duration-500 ease-[cubic-bezier(0.34,1.56,0.64,1)] ${isDark
+          className={`absolute h-full w-full transition-all duration-700 ease-[cubic-bezier(0.34,1.56,0.64,1)] ${isDark
             ? "-rotate-90 scale-0 opacity-0"
             : "rotate-0 scale-100 opacity-100 text-current"
             }`}
         />
         <Moon
-          className={`absolute h-full w-full transition-all duration-500 ease-[cubic-bezier(0.34,1.56,0.64,1)] ${isDark
+          className={`absolute h-full w-full transition-all duration-700 ease-[cubic-bezier(0.34,1.56,0.64,1)] ${isDark
             ? "rotate-0 scale-100 opacity-100 text-current"
             : "-rotate-90 scale-0 opacity-0"
             }`}

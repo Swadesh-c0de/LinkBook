@@ -8,7 +8,7 @@ import { Input } from "@/components/Input";
 import { AuthGuard } from "@/components/AuthGuard";
 import { AnimatePresence, motion } from "framer-motion";
 import { FadeUp, StaggerContainer, StaggerItem, ScaleIn, FadeIn } from "@/components/motion";
-import { Plus, Search, Mail, Phone, Loader2, User, X, Pencil, Trash2, LayoutGrid, List, AlertCircle, ArrowUpDown } from "lucide-react";
+import { Plus, Search, Mail, Phone, Loader2, User, UserPlus, Sparkles, ShieldCheck, SearchX, Users, X, Pencil, Trash2, LayoutGrid, List, AlertCircle, ArrowUpDown } from "lucide-react";
 import { Pagination } from "@/components/Pagination";
 
 interface Contact {
@@ -155,97 +155,99 @@ export default function Dashboard() {
           </div>
 
           {/* Toolbar */}
-          <div className="flex flex-col md:flex-row items-stretch md:items-center justify-center gap-2 mb-8 animate-float-up" style={{ animationDelay: '0.1s' }}>
+          {contacts.length > 0 && (
+            <div className="flex flex-col md:flex-row items-stretch md:items-center justify-center gap-2 mb-8 animate-float-up" style={{ animationDelay: '0.1s' }}>
 
-            <div className="relative flex-1 group w-full md:max-w-sm">
-              <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground/30 group-focus-within:text-foreground transition-colors duration-300" />
-              <input
-                className="w-full h-11 glass border-border/40 rounded-2xl pl-10 pr-10 text-sm placeholder:text-muted-foreground/20 focus:outline-none focus:border-foreground/20 focus:bg-secondary/40 transition-all duration-300 shadow-sm"
-                placeholder="Search your contacts..."
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-              />
-              {search && !isSearching && (
-                <button onClick={() => setSearch("")} className="absolute right-3.5 top-1/2 -translate-y-1/2 text-muted-foreground/30 hover:text-foreground transition-all duration-300 active:scale-95">
-                  <X className="h-4 w-4" />
-                </button>
-              )}
-              {isSearching && (
-                <div className="absolute right-3.5 top-1/2 -translate-y-1/2">
-                  <Loader2 className="h-4 w-4 text-primary animate-spin" />
-                </div>
-              )}
-              {/* Animated Loading Bar */}
-              <AnimatePresence>
-                {isSearching && (
-                  <motion.div
-                    initial={{ scaleX: 0, opacity: 0 }}
-                    animate={{ scaleX: 1, opacity: 1 }}
-                    exit={{ scaleX: 0, opacity: 0 }}
-                    className="absolute bottom-0 left-4 right-4 h-0.5 bg-primary origin-left rounded-full z-10"
-                    transition={{ duration: 0.5, ease: "easeInOut", repeat: Infinity }}
-                  />
+              <div className="relative flex-1 group w-full md:max-w-sm">
+                <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground/30 group-focus-within:text-foreground transition-colors duration-300" />
+                <input
+                  className="w-full h-11 glass border-border/40 rounded-2xl pl-10 pr-10 text-sm placeholder:text-muted-foreground/20 focus:outline-none focus:border-foreground/20 focus:bg-secondary/40 transition-all duration-300 shadow-sm"
+                  placeholder="Search your contacts..."
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                />
+                {search && !isSearching && (
+                  <button onClick={() => setSearch("")} className="absolute right-3.5 top-1/2 -translate-y-1/2 text-muted-foreground/30 hover:text-foreground transition-all duration-300 active:scale-95">
+                    <X className="h-4 w-4" />
+                  </button>
                 )}
-              </AnimatePresence>
+                {isSearching && (
+                  <div className="absolute right-3.5 top-1/2 -translate-y-1/2">
+                    <Loader2 className="h-4 w-4 text-primary animate-spin" />
+                  </div>
+                )}
+                {/* Animated Loading Bar */}
+                <AnimatePresence>
+                  {isSearching && (
+                    <motion.div
+                      initial={{ scaleX: 0, opacity: 0 }}
+                      animate={{ scaleX: 1, opacity: 1 }}
+                      exit={{ scaleX: 0, opacity: 0 }}
+                      className="absolute bottom-0 left-4 right-4 h-0.5 bg-primary origin-left rounded-full z-10"
+                      transition={{ duration: 0.5, ease: "easeInOut", repeat: Infinity }}
+                    />
+                  )}
+                </AnimatePresence>
+              </div>
+
+              <div className="flex items-center justify-center gap-2">
+                <div className="flex h-10 items-center gap-1 rounded-[1.25rem] border border-border/40 bg-secondary/30 p-1">
+                  <button
+                    onClick={() => setView("grid")}
+                    className={`h-8 px-3 rounded-full text-xs font-bold transition-all duration-300 ${view === "grid" ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"}`}
+                  >
+                    <LayoutGrid className="h-3.5 w-3.5" />
+                  </button>
+                  <button
+                    onClick={() => setView("list")}
+                    className={`h-8 px-3 rounded-full text-xs font-bold transition-all duration-300 ${view === "list" ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"}`}
+                  >
+                    <List className="h-3.5 w-3.5" />
+                  </button>
+                </div>
+
+                <div className="hidden md:flex h-10 items-center gap-1 rounded-[1.25rem] border border-border/40 bg-secondary/30 p-1 ml-1">
+                  <span className="text-[10px] font-bold uppercase tracking-[0.1em] text-muted-foreground/40 px-2">Sort</span>
+                  <button
+                    onClick={() => setSortBy("name")}
+                    className={`h-8 px-3 rounded-full text-xs font-bold transition-all duration-300 ${sortBy === "name" ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"}`}
+                  >
+                    Name
+                  </button>
+                  <button
+                    onClick={() => setSortBy("email")}
+                    className={`h-8 px-3 rounded-full text-xs font-bold transition-all duration-300 ${sortBy === "email" ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"}`}
+                  >
+                    Email
+                  </button>
+                </div>
+
+                {/* Mobile Sort Toggle */}
+                <div className="md:hidden flex items-center justify-center">
+                  <button
+                    onClick={() => setSortBy(sortBy === "name" ? "email" : "name")}
+                    className="h-10 px-4 flex items-center gap-2 rounded-xl border border-border/40 bg-secondary/30 text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground active:scale-95 transition-all shadow-sm hover:border-border/60 hover:text-foreground"
+                    aria-label="Toggle Sort"
+                  >
+                    <ArrowUpDown className="h-3.5 w-3.5 opacity-50" />
+                    <span>{sortBy}</span>
+                  </button>
+                </div>
+
+                <div className="hidden md:flex items-center h-10 px-4 rounded-[1.25rem] border border-border/40 bg-secondary/30 text-xs tabular-nums text-muted-foreground transition-colors duration-300 ml-1">
+                  <span className="font-bold text-foreground mr-1.5">
+                    {filtered.length > 0 ? `${(currentPage - 1) * CONTACTS_PER_PAGE + 1}-${Math.min(currentPage * CONTACTS_PER_PAGE, filtered.length)}` : "0"}
+                  </span>
+                  <span className="opacity-50 text-[10px] font-bold uppercase tracking-wider">of {filtered.length} {deferredSearch ? "found" : "total"}</span>
+                </div>
+
+                <Button onClick={() => { setForm({ name: "", email: "", phone: "" }); setAddOpen(true); setFormError(null); }} size="default" className="h-10 rounded-[1.25rem] px-5 ml-1 flex items-center gap-2 group">
+                  <Plus className="h-4 w-4 group-hover:rotate-90 transition-transform duration-300" />
+                  <span className="hidden md:inline text-xs font-bold">New Contact</span>
+                </Button>
+              </div>
             </div>
-
-            <div className="flex items-center justify-center gap-2">
-              <div className="flex h-10 items-center gap-1 rounded-[1.25rem] border border-border/40 bg-secondary/30 p-1">
-                <button
-                  onClick={() => setView("grid")}
-                  className={`h-8 px-3 rounded-full text-xs font-bold transition-all duration-300 ${view === "grid" ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"}`}
-                >
-                  <LayoutGrid className="h-3.5 w-3.5" />
-                </button>
-                <button
-                  onClick={() => setView("list")}
-                  className={`h-8 px-3 rounded-full text-xs font-bold transition-all duration-300 ${view === "list" ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"}`}
-                >
-                  <List className="h-3.5 w-3.5" />
-                </button>
-              </div>
-
-              <div className="hidden md:flex h-10 items-center gap-1 rounded-[1.25rem] border border-border/40 bg-secondary/30 p-1 ml-1">
-                <span className="text-[10px] font-bold uppercase tracking-[0.1em] text-muted-foreground/40 px-2">Sort</span>
-                <button
-                  onClick={() => setSortBy("name")}
-                  className={`h-8 px-3 rounded-full text-xs font-bold transition-all duration-300 ${sortBy === "name" ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"}`}
-                >
-                  Name
-                </button>
-                <button
-                  onClick={() => setSortBy("email")}
-                  className={`h-8 px-3 rounded-full text-xs font-bold transition-all duration-300 ${sortBy === "email" ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"}`}
-                >
-                  Email
-                </button>
-              </div>
-
-              {/* Mobile Sort Toggle */}
-              <div className="md:hidden flex items-center justify-center">
-                <button
-                  onClick={() => setSortBy(sortBy === "name" ? "email" : "name")}
-                  className="h-10 px-4 flex items-center gap-2 rounded-xl border border-border/40 bg-secondary/30 text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground active:scale-95 transition-all shadow-sm hover:border-border/60 hover:text-foreground"
-                  aria-label="Toggle Sort"
-                >
-                  <ArrowUpDown className="h-3.5 w-3.5 opacity-50" />
-                  <span>{sortBy}</span>
-                </button>
-              </div>
-
-              <div className="hidden md:flex items-center h-10 px-4 rounded-[1.25rem] border border-border/40 bg-secondary/30 text-xs tabular-nums text-muted-foreground transition-colors duration-300 ml-1">
-                <span className="font-bold text-foreground mr-1.5">
-                  {filtered.length > 0 ? `${(currentPage - 1) * CONTACTS_PER_PAGE + 1}-${Math.min(currentPage * CONTACTS_PER_PAGE, filtered.length)}` : "0"}
-                </span>
-                <span className="opacity-50 text-[10px] font-bold uppercase tracking-wider">of {filtered.length} {deferredSearch ? "found" : "total"}</span>
-              </div>
-
-              <Button onClick={() => { setForm({ name: "", email: "", phone: "" }); setAddOpen(true); setFormError(null); }} size="default" className="h-10 rounded-[1.25rem] px-5 ml-1 flex items-center gap-2 group">
-                <Plus className="h-4 w-4 group-hover:rotate-90 transition-transform duration-300" />
-                <span className="hidden md:inline text-xs font-bold">New Contact</span>
-              </Button>
-            </div>
-          </div>
+          )}
 
           {error && (
             <FadeUp className="mb-6 rounded-xl bg-secondary/80 border border-border/60 px-4 py-3 text-sm text-foreground flex items-center justify-between shadow-sm">
@@ -259,16 +261,110 @@ export default function Dashboard() {
 
           {/* Content */}
           <div className={`transition-opacity duration-150 ${isSearching ? "opacity-60" : "opacity-100"}`}>
-            {filtered.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-28 text-center">
-                <div className="h-12 w-12 rounded-xl bg-secondary flex items-center justify-center mb-4">
-                  <User className="h-5 w-5 text-muted-foreground" />
+            {contacts.length === 0 ? (
+              <FadeUp className="max-w-2xl mx-auto my-4 sm:my-8">
+                <div className="relative overflow-hidden rounded-[2rem] border border-border/60 bg-gradient-to-b from-card/80 via-card/40 to-background/90 p-8 sm:p-12 text-center backdrop-blur-xl shadow-xl">
+                  {/* Subtle Ambient Background Glow */}
+                  <div className="absolute top-0 left-1/2 -translate-x-1/2 w-80 h-80 bg-primary/5 rounded-full blur-3xl pointer-events-none -z-10" />
+
+                  {/* Floating Icon Composition */}
+                  <div className="relative mx-auto mb-6 flex items-center justify-center">
+                    <motion.div
+                      className="absolute w-24 h-24 rounded-full bg-primary/10 -z-10"
+                      animate={{ scale: [1, 1.2, 1], opacity: [0.3, 0.7, 0.3] }}
+                      transition={{ duration: 3.5, repeat: Infinity, ease: "easeInOut" }}
+                    />
+                    <div className="relative flex h-20 w-20 items-center justify-center rounded-3xl bg-secondary border border-border/80 shadow-md text-foreground group">
+                      <UserPlus className="h-9 w-9 text-foreground transition-transform duration-300 group-hover:scale-110" />
+                      <div className="absolute -top-1.5 -right-1.5 flex h-7 w-7 items-center justify-center rounded-full bg-foreground text-background shadow-md">
+                        <Sparkles className="h-3.5 w-3.5" />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Aesthetic Pill Badge */}
+                  <div className="inline-flex items-center gap-1.5 px-3.5 py-1 rounded-full bg-secondary/80 border border-border/60 text-xs font-semibold text-muted-foreground mb-4 shadow-sm">
+                    <Sparkles className="h-3.5 w-3.5 text-primary" />
+                    <span>Start Your Address Book</span>
+                  </div>
+
+                  {/* Heading & Subtitle */}
+                  <h2 className="text-2xl sm:text-3xl font-bold tracking-tight text-foreground mb-2">
+                    No contacts <span className="font-cursive font-normal text-primary text-3xl sm:text-4xl">saved yet</span>
+                  </h2>
+                  <p className="text-muted-foreground text-xs sm:text-sm max-w-sm mx-auto leading-relaxed mb-7">
+                    Your personal network is clean and ready. Add names, phone numbers, and emails to keep everyone organized in one place.
+                  </p>
+
+                  {/* CTA Button */}
+                  <div className="flex flex-col sm:flex-row items-center justify-center gap-3 mb-8">
+                    <Button
+                      size="lg"
+                      onClick={() => { setForm({ name: "", email: "", phone: "" }); setAddOpen(true); setFormError(null); }}
+                      className="w-full sm:w-auto h-12 rounded-2xl px-7 text-xs sm:text-sm font-bold shadow-md hover:shadow-lg transition-all duration-300 group gap-2.5"
+                    >
+                      <Plus className="h-4 w-4 group-hover:rotate-90 transition-transform duration-300" />
+                      <span>Create Your First Contact</span>
+                    </Button>
+                  </div>
+
+                  {/* Feature Highlights / Value Props */}
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-6 border-t border-border/40 text-left">
+                    <div className="rounded-2xl border border-border/30 bg-secondary/30 p-3.5 transition-colors hover:bg-secondary/50">
+                      <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-secondary text-foreground mb-2">
+                        <Users className="h-4 w-4" />
+                      </div>
+                      <h4 className="text-xs font-bold text-foreground mb-1">Clean Management</h4>
+                      <p className="text-[11px] text-muted-foreground leading-snug">Effortlessly edit and update your contacts anytime.</p>
+                    </div>
+
+                    <div className="rounded-2xl border border-border/30 bg-secondary/30 p-3.5 transition-colors hover:bg-secondary/50">
+                      <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-secondary text-foreground mb-2">
+                        <Search className="h-4 w-4" />
+                      </div>
+                      <h4 className="text-xs font-bold text-foreground mb-1">Instant Search</h4>
+                      <p className="text-[11px] text-muted-foreground leading-snug">Filter and find connections by name, email, or phone.</p>
+                    </div>
+
+                    <div className="rounded-2xl border border-border/30 bg-secondary/30 p-3.5 transition-colors hover:bg-secondary/50">
+                      <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-secondary text-foreground mb-2">
+                        <ShieldCheck className="h-4 w-4" />
+                      </div>
+                      <h4 className="text-xs font-bold text-foreground mb-1">Private & Safe</h4>
+                      <p className="text-[11px] text-muted-foreground leading-snug">Your data is secured and linked solely to your account.</p>
+                    </div>
+                  </div>
                 </div>
-                <h3 className="font-semibold text-base mb-1">No contacts found</h3>
-                <p className="text-muted-foreground text-sm max-w-xs">
-                  {contacts.length === 0 ? "Add your first contact to get started." : "Try a different search term."}
-                </p>
-              </div>
+              </FadeUp>
+            ) : filtered.length === 0 ? (
+              <FadeUp className="max-w-md mx-auto my-8">
+                <div className="rounded-3xl border border-border/50 bg-secondary/20 p-8 text-center backdrop-blur-md">
+                  <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-secondary text-muted-foreground shadow-sm">
+                    <SearchX className="h-6 w-6" />
+                  </div>
+                  <h3 className="font-bold text-base text-foreground mb-1.5">No matching contacts</h3>
+                  <p className="text-muted-foreground text-xs sm:text-sm mb-6 max-w-xs mx-auto leading-relaxed">
+                    We couldn&apos;t find any contacts matching &quot;<span className="text-foreground font-medium">{search}</span>&quot;. Try checking for typos or clear your search.
+                  </p>
+                  <div className="flex flex-col sm:flex-row items-center justify-center gap-2">
+                    <Button variant="outline" size="sm" onClick={() => setSearch("")} className="w-full sm:w-auto rounded-xl">
+                      Clear Search
+                    </Button>
+                    <Button
+                      size="sm"
+                      onClick={() => {
+                        setForm({ name: search, email: "", phone: "" });
+                        setAddOpen(true);
+                        setFormError(null);
+                      }}
+                      className="w-full sm:w-auto rounded-xl"
+                    >
+                      <Plus className="h-3.5 w-3.5 mr-1" />
+                      Add &quot;{search.length > 12 ? search.slice(0, 12) + "..." : search}&quot;
+                    </Button>
+                  </div>
+                </div>
+              </FadeUp>
             ) : view === "grid" ? (
               <StaggerContainer key={`grid-${deferredSearch}-${currentPage}`} trigger="animate" className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 lg:gap-5">
                 {paginatedContacts.map((c) => (

@@ -145,3 +145,7 @@
 ::view-transition-new(root) {
   z-index: 9999;
 }
+
+::view-transition-image-pair(root) {
+  isolation: isolate;
+}
