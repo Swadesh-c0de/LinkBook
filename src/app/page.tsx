@@ -50,37 +50,84 @@ export default function Dashboard() {
   useEffect(() => { fetchContacts(); }, [fetchContacts]);
 
   const handleAdd = async (e: React.FormEvent) => {
-    e.preventDefault(); setSaving(true);
+    e.preventDefault();
+    const cleanForm = {
+      name: form.name.trim(),
+      email: form.email.trim().toLowerCase(),
+      phone: form.phone.trim(),
+    };
+    if (!cleanForm.name || !cleanForm.email || !cleanForm.phone) {
+      setFormError("Please fill out all fields.");
+      return;
+    }
+    setSaving(true);
     try {
-      const { data } = await api.post("/contacts", form);
+      const { data } = await api.post("/contacts", cleanForm);
       setContacts([data, ...contacts]);
-      setAddOpen(false); setForm({ name: "", email: "", phone: "" });
-    } catch (err: any) { setFormError(err.response?.data?.message || "Failed to add contact."); }
-    finally { setSaving(false); }
+      setAddOpen(false);
+      setForm({ name: "", email: "", phone: "" });
+    } catch (err: any) {
+      setFormError(err.response?.data?.message || "Failed to add contact.");
+    } finally {
+      setSaving(false);
+    }
   };
 
   const handleEdit = async (e: React.FormEvent) => {
-    e.preventDefault(); if (!activeContact) return; setSaving(true);
+    e.preventDefault();
+    if (!activeContact) return;
+    const cleanForm = {
+      name: form.name.trim(),
+      email: form.email.trim().toLowerCase(),
+      phone: form.phone.trim(),
+    };
+    if (!cleanForm.name || !cleanForm.email || !cleanForm.phone) {
+      setFormError("Please fill out all fields.");
+      return;
+    }
+    setSaving(true);
     try {
-      const { data } = await api.put(`/contacts/${activeContact._id}`, form);
+      const { data } = await api.put(`/contacts/${activeContact._id}`, cleanForm);
       setContacts(contacts.map((c) => (c._id === data._id ? data : c)));
-      setEditOpen(false); setActiveContact(null);
-    } catch (err: any) { setFormError(err.response?.data?.message || "Failed to update contact."); }
-    finally { setSaving(false); }
+      setEditOpen(false);
+      setActiveContact(null);
+    } catch (err: any) {
+      setFormError(err.response?.data?.message || "Failed to update contact.");
+    } finally {
+      setSaving(false);
+    }
   };
 
   const handleDelete = async () => {
-    if (!activeContact) return; setSaving(true);
+    if (!activeContact) return;
+    setSaving(true);
     try {
       await api.delete(`/contacts/${activeContact._id}`);
       setContacts(contacts.filter((c) => c._id !== activeContact._id));
-      setDeleteOpen(false); setActiveContact(null);
-    } catch (err: any) { setFormError(err.response?.data?.message || "Failed to delete contact."); }
-    finally { setSaving(false); }
+      setDeleteOpen(false);
+      setActiveContact(null);
+    } catch (err: any) {
+      setFormError(err.response?.data?.message || "Failed to delete contact.");
+    } finally {
+      setSaving(false);
+    }
   };
 
-  const openEdit = (c: Contact) => { setActiveContact(c); setForm({ name: c.name, email: c.email, phone: c.phone }); setEditOpen(true); setFormError(null); };
+  const openEdit = (c: Contact) => { setForm({ name: c.name, email: c.email, phone: c.phone }); setActiveContact(c); setEditOpen(true); setFormError(null); };
   const openDelete = (c: Contact) => { setActiveContact(c); setDeleteOpen(true); setFormError(null); };
+
+  // Keyboard accessibility: dismiss modals on Escape
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        if (addOpen) setAddOpen(false);
+        if (editOpen) { setEditOpen(false); setActiveContact(null); }
+        if (deleteOpen) { setDeleteOpen(false); setActiveContact(null); }
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [addOpen, editOpen, deleteOpen]);
 
   // Deferred search: input stays snappy, card list catches up
   const deferredSearch = useDeferredValue(search);
@@ -109,6 +156,14 @@ export default function Dashboard() {
   }, [contacts, deferredSearch, sortBy]);
 
   const totalPages = Math.ceil(filtered.length / CONTACTS_PER_PAGE);
+
+  // Auto-clamp page index if contacts were deleted or filtered out
+  useEffect(() => {
+    if (currentPage > totalPages && totalPages > 0) {
+      setCurrentPage(totalPages);
+    }
+  }, [currentPage, totalPages]);
+
   const paginatedContacts = useMemo(() => {
     const start = (currentPage - 1) * CONTACTS_PER_PAGE;
     return filtered.slice(start, start + CONTACTS_PER_PAGE);
@@ -140,7 +195,7 @@ export default function Dashboard() {
           </FadeIn>
         </div>
       ) : (
-        <div className="min-h-screen pt-28 pb-24 relative">
+        <div className="min-h-screen pt-28 pb-32 relative">
           <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8 relative z-10">
 
             {/* Header */}
@@ -312,98 +367,119 @@ export default function Dashboard() {
                   </div>
                 </FadeUp>
               ) : view === "grid" ? (
-                <StaggerContainer key={`grid-${deferredSearch}-${currentPage}`} trigger="animate" className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 lg:gap-5">
+                <StaggerContainer key={`grid-${deferredSearch}-${currentPage}`} trigger="animate" className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
                   {paginatedContacts.map((c) => (
                     <StaggerItem key={c._id}>
-                      <div className="group relative rounded-[1.5rem] border border-border/40 glass p-4 sm:p-5 transition-all duration-300 hover:bg-secondary/10 hover:border-border/60 shadow-sm hover:shadow-md hover:-translate-y-1 flex flex-col overflow-hidden h-full">
-                        <div className="flex items-start justify-between mb-4">
-                          <div className="h-10 w-10 rounded-full bg-secondary text-foreground flex items-center justify-center text-sm font-bold tracking-tight ring-1 ring-inset ring-border/80 group-hover:bg-foreground group-hover:text-background transition-all duration-500 shadow-sm">
-                            {c.name.charAt(0).toUpperCase()}
+                      <div className="group relative rounded-[1.25rem] sm:rounded-[1.5rem] border border-border/40 bg-background/80 hover:bg-secondary/15 hover:border-border/60 p-3.5 sm:p-4 transition-all duration-300 shadow-xs hover:shadow-md hover:-translate-y-0.5 flex flex-col justify-between h-full">
+                        {/* Top Header: Avatar & Actions */}
+                        <div>
+                          <div className="flex items-center justify-between mb-2 sm:mb-2.5">
+                            <div className="h-8 w-8 sm:h-9 sm:w-9 rounded-full bg-secondary text-foreground flex items-center justify-center text-xs sm:text-sm font-bold tracking-tight ring-1 ring-inset ring-border/80 group-hover:bg-foreground group-hover:text-background transition-all duration-300 shadow-xs">
+                              {c.name.charAt(0).toUpperCase()}
+                            </div>
+
+                            <div className="flex items-center gap-1 opacity-80 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity duration-200">
+                              <button
+                                onClick={() => openEdit(c)}
+                                className="flex items-center justify-center h-7 w-7 sm:h-8 sm:w-8 rounded-full text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors"
+                                aria-label={`Edit ${c.name}`}
+                              >
+                                <Pencil className="h-3.5 w-3.5" />
+                              </button>
+                              <button
+                                onClick={() => openDelete(c)}
+                                className="flex items-center justify-center h-7 w-7 sm:h-8 sm:w-8 rounded-full text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
+                                aria-label={`Delete ${c.name}`}
+                              >
+                                <Trash2 className="h-3.5 w-3.5" />
+                              </button>
+                            </div>
                           </div>
 
-                          <div className="flex items-center gap-1.5 lg:opacity-0 lg:group-hover:opacity-100 transition-all duration-300 lg:-translate-y-1 lg:group-hover:translate-y-0 relative z-10 bg-background/50 sm:bg-transparent p-1 sm:p-0 rounded-full">
-                            <button
-                              onClick={() => openEdit(c)}
-                              className="flex items-center justify-center h-9 w-9 sm:h-10 sm:w-10 rounded-full text-muted-foreground hover:text-foreground bg-secondary hover:bg-foreground/10 transition-colors shadow-sm sm:shadow-none"
-                              aria-label="Edit"
-                            >
-                              <Pencil className="h-4 w-4" />
-                            </button>
-                            <button
-                              onClick={() => openDelete(c)}
-                              className="flex items-center justify-center h-9 w-9 sm:h-10 sm:w-10 rounded-full text-muted-foreground hover:text-foreground bg-secondary hover:bg-foreground/10 transition-colors shadow-sm sm:shadow-none"
-                              aria-label="Delete"
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </button>
-                          </div>
-                        </div>
-
-                        <div className="mb-4">
-                          <h3 className="font-bold text-lg tracking-tight truncate group-hover:text-primary transition-colors duration-300" title={c.name}>
+                          {/* Contact Name */}
+                          <h3 className="font-bold text-[15px] sm:text-base tracking-tight truncate text-foreground group-hover:text-primary transition-colors duration-200 mb-2 sm:mb-3" title={c.name}>
                             {c.name}
                           </h3>
                         </div>
 
-                        <div className="mt-auto space-y-3 pt-4 border-t border-border/40">
-                          <div className="flex items-center gap-3 text-muted-foreground text-[14px] font-medium group-hover:text-foreground/80 transition-colors duration-300">
-                            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-secondary/80 text-muted-foreground group-hover:bg-foreground/10 group-hover:text-foreground transition-all duration-300">
-                              <Mail className="h-4 w-4" />
-                            </div>
-                            <span className="truncate" title={c.email}>{c.email}</span>
-                          </div>
-                          <div className="flex items-center gap-3 text-muted-foreground text-[14px] font-medium group-hover:text-foreground/80 transition-colors duration-300">
-                            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-secondary/80 text-muted-foreground group-hover:bg-foreground/10 group-hover:text-foreground transition-all duration-300">
-                              <Phone className="h-4 w-4" />
-                            </div>
-                            <span className="truncate" title={c.phone}>{c.phone}</span>
-                          </div>
+                        {/* Bottom Contact Details */}
+                        <div className="space-y-1.5 sm:space-y-2 pt-2.5 sm:pt-3 border-t border-border/30">
+                          <a
+                            href={`mailto:${c.email}`}
+                            className="flex items-center gap-2 text-muted-foreground text-xs sm:text-[13px] font-medium hover:text-foreground transition-colors duration-200 min-w-0 group/link"
+                            title={`Send email to ${c.email}`}
+                          >
+                            <Mail className="h-3.5 w-3.5 opacity-50 shrink-0 group-hover/link:opacity-100 transition-opacity" />
+                            <span className="truncate group-hover/link:underline underline-offset-2">{c.email}</span>
+                          </a>
+                          <a
+                            href={`tel:${c.phone}`}
+                            className="flex items-center gap-2 text-muted-foreground text-xs sm:text-[13px] font-medium hover:text-foreground transition-colors duration-200 min-w-0 group/link"
+                            title={`Call ${c.phone}`}
+                          >
+                            <Phone className="h-3.5 w-3.5 opacity-50 shrink-0 group-hover/link:opacity-100 transition-opacity" />
+                            <span className="truncate group-hover/link:underline underline-offset-2">{c.phone}</span>
+                          </a>
                         </div>
                       </div>
                     </StaggerItem>
                   ))}
                 </StaggerContainer>
               ) : (
-                <StaggerContainer key={`list-${deferredSearch}-${currentPage}`} trigger="animate" className="flex flex-col gap-3">
+                <StaggerContainer key={`list-${deferredSearch}-${currentPage}`} trigger="animate" className="flex flex-col gap-2 sm:gap-2.5">
                   {paginatedContacts.map((c) => (
                     <StaggerItem key={c._id}>
-                      <div className="group relative flex flex-col sm:flex-row sm:items-center justify-between p-4 sm:p-2 sm:pr-4 rounded-[1.5rem] sm:rounded-full border border-border/40 bg-background hover:bg-secondary/10 hover:border-border/60 shadow-sm hover:shadow-md transition-all duration-300">
-                        <div className="flex items-start sm:items-center gap-4 min-w-0 flex-1">
-                          <div className="h-14 w-14 sm:h-12 sm:w-12 shrink-0 rounded-full bg-secondary text-foreground flex items-center justify-center text-lg sm:text-base font-bold tracking-tight ring-1 ring-inset ring-border/80 group-hover:bg-foreground group-hover:text-background transition-colors duration-500">
+                      <div className="group relative flex items-center justify-between py-2 px-3 sm:py-2.5 sm:px-3.5 sm:pr-4 rounded-2xl sm:rounded-full border border-border/40 bg-background/80 hover:bg-secondary/15 hover:border-border/60 shadow-xs hover:shadow-sm transition-all duration-200 gap-3">
+                        <div className="flex items-center gap-3 min-w-0 flex-1">
+                          {/* Compact Avatar */}
+                          <div className="h-9 w-9 sm:h-10 sm:w-10 shrink-0 rounded-full bg-secondary text-foreground flex items-center justify-center text-xs sm:text-sm font-bold tracking-tight ring-1 ring-inset ring-border/80 group-hover:bg-foreground group-hover:text-background transition-colors duration-300 shadow-xs">
                             {c.name.charAt(0).toUpperCase()}
                           </div>
 
-                          <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-6 min-w-0 flex-1">
-                            <p className="font-bold text-[16px] sm:text-[15px] truncate sm:min-w-[160px] lg:min-w-[200px] mt-0.5 sm:mt-0">{c.name}</p>
+                          {/* Contact Info */}
+                          <div className="flex flex-col sm:flex-row sm:items-center gap-0.5 sm:gap-6 min-w-0 flex-1">
+                            <p className="font-bold text-sm sm:text-[15px] text-foreground truncate leading-tight sm:min-w-[140px] lg:min-w-[180px]">
+                              {c.name}
+                            </p>
 
-                            <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-8 min-w-0 flex-1 text-[13px] text-muted-foreground font-medium mt-1 sm:mt-0">
-                              <span className="flex items-center gap-2 truncate group-hover:text-foreground/80 transition-colors duration-300">
-                                <Mail className="h-3.5 w-3.5 opacity-40 shrink-0 hidden sm:block" />
-                                {c.email}
-                              </span>
-                              <span className="flex items-center gap-2 truncate group-hover:text-foreground/80 transition-colors duration-300">
-                                <Phone className="h-3.5 w-3.5 opacity-40 shrink-0 hidden sm:block" />
-                                {c.phone}
-                              </span>
+                            <div className="flex items-center gap-2 sm:gap-6 min-w-0 flex-1 text-[12px] sm:text-[13px] text-muted-foreground leading-tight">
+                              <a
+                                href={`mailto:${c.email}`}
+                                className="truncate hover:text-foreground transition-colors duration-200 hover:underline underline-offset-2 flex items-center gap-1.5 max-w-[160px] sm:max-w-none"
+                                title={`Send email to ${c.email}`}
+                              >
+                                <Mail className="h-3 w-3 opacity-50 shrink-0 hidden sm:block" />
+                                <span className="truncate">{c.email}</span>
+                              </a>
+                              <span className="opacity-30 sm:hidden">•</span>
+                              <a
+                                href={`tel:${c.phone}`}
+                                className="truncate hover:text-foreground transition-colors duration-200 hover:underline underline-offset-2 flex items-center gap-1.5"
+                                title={`Call ${c.phone}`}
+                              >
+                                <Phone className="h-3 w-3 opacity-50 shrink-0 hidden sm:block" />
+                                <span className="truncate">{c.phone}</span>
+                              </a>
                             </div>
                           </div>
                         </div>
 
-                        <div className="flex items-center justify-end gap-2 mt-4 sm:mt-0 border-t border-border/40 sm:border-0 pt-3 sm:pt-0 shrink-0">
-                          <div className="flex gap-2 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity duration-300">
-                            <button
-                              onClick={() => openEdit(c)}
-                              className="flex items-center justify-center gap-1.5 px-4 sm:px-0 py-2 sm:py-0 sm:h-9 sm:w-9 rounded-full text-xs font-bold text-muted-foreground hover:text-foreground bg-secondary/60 sm:bg-transparent hover:bg-secondary transition-all"
-                            >
-                              <Pencil className="h-3.5 w-3.5" /> <span className="sm:hidden">Edit</span>
-                            </button>
-                            <button
-                              onClick={() => openDelete(c)}
-                              className="flex items-center justify-center gap-1.5 px-4 sm:px-0 py-2 sm:py-0 sm:h-9 sm:w-9 rounded-full text-xs font-bold text-muted-foreground hover:text-foreground bg-secondary/60 sm:bg-transparent hover:bg-secondary transition-all"
-                            >
-                              <Trash2 className="h-3.5 w-3.5" /> <span className="sm:hidden">Delete</span>
-                            </button>
-                          </div>
+                        {/* Action Buttons */}
+                        <div className="flex items-center gap-1 shrink-0">
+                          <button
+                            onClick={() => openEdit(c)}
+                            className="flex items-center justify-center h-8 w-8 rounded-full text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors"
+                            aria-label={`Edit ${c.name}`}
+                          >
+                            <Pencil className="h-3.5 w-3.5" />
+                          </button>
+                          <button
+                            onClick={() => openDelete(c)}
+                            className="flex items-center justify-center h-8 w-8 rounded-full text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
+                            aria-label={`Delete ${c.name}`}
+                          >
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </button>
                         </div>
                       </div>
                     </StaggerItem>

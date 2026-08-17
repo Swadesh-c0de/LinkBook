@@ -22,16 +22,21 @@ export default function Login() {
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
+    const cleanEmail = email.trim().toLowerCase();
+    if (!cleanEmail || !password) {
+      setError("Please enter your email and password.");
+      return;
+    }
     setLoading(true);
     setError("");
     setSuccess("");
     try {
-      const { data } = await api.post("/users/login", { email, password });
+      const { data } = await api.post("/users/login", { email: cleanEmail, password });
       localStorage.setItem("token", data.accessToken);
       setSuccess("Login successful! Redirecting...");
-      setTimeout(() => router.push("/"), 1000);
+      setTimeout(() => router.push("/"), 400);
     } catch (err: any) {
-      const msg = err.response?.data?.message || err.message || "Login failed.";
+      const msg = err.response?.data?.message || err.message || "Login failed. Please check your credentials.";
       setError(msg);
     } finally {
       setLoading(false);

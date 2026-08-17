@@ -3,6 +3,7 @@ import axios from "axios";
 const api = axios.create({
   baseURL: process.env.NEXT_PUBLIC_API_URL,
   withCredentials: true,
+  timeout: 20000,
   headers: {
     "Content-Type": "application/json",
   },
@@ -29,7 +30,11 @@ api.interceptors.request.use((config) => {
 api.interceptors.response.use(
   (response) => response,
   async (error) => {
-    const originalRequest = error.config;
+    const originalRequest = error?.config;
+
+    if (!originalRequest) {
+      return Promise.reject(error);
+    }
 
     const isAuthRoute = originalRequest.url?.includes("/users/login") || 
                         originalRequest.url?.includes("/users/register") || 
@@ -65,7 +70,9 @@ api.interceptors.response.use(
         
         if (typeof window !== "undefined") {
           localStorage.removeItem("token");
-          window.location.href = "/login";
+          if (window.location.pathname !== "/login" && window.location.pathname !== "/register") {
+            window.location.href = "/login";
+          }
         }
         
         return Promise.reject(refreshError);

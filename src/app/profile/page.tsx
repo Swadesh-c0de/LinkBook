@@ -47,6 +47,19 @@ export default function Profile() {
 
   useEffect(() => { fetchProfile(); }, [fetchProfile]);
 
+  // Keyboard accessibility: dismiss modals on Escape
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        if (editOpen) setEditOpen(false);
+        if (passwordOpen) setPasswordOpen(false);
+        if (deleteOpen) setDeleteOpen(false);
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [editOpen, passwordOpen, deleteOpen]);
+
   const handleLogout = async () => {
     try { await api.get("/users/logout"); } catch { /* ignore */ }
     localStorage.removeItem("token");
@@ -62,19 +75,41 @@ export default function Profile() {
   };
 
   const handleEdit = async (e: React.FormEvent) => {
-    e.preventDefault(); setSaving(true); setError(null); setSuccess(null); setFormError(null);
+    e.preventDefault();
+    const cleanForm = {
+      username: editForm.username.trim(),
+      email: editForm.email.trim().toLowerCase(),
+    };
+    if (!cleanForm.username || !cleanForm.email) {
+      setFormError("Username and email cannot be empty.");
+      return;
+    }
+    setSaving(true);
+    setError(null);
+    setSuccess(null);
+    setFormError(null);
     try {
-      const { data } = await api.put("/users/profile", editForm);
+      const { data } = await api.put("/users/profile", cleanForm);
       setUser({ ...user, username: data.username, email: data.email } as UserProfile);
       setSuccess("Profile updated successfully!");
       setEditOpen(false);
     } catch (err: any) {
       setFormError(err.response?.data?.message || err.message || "Failed to update profile.");
-    } finally { setSaving(false); }
+    } finally {
+      setSaving(false);
+    }
   };
 
   const handlePassword = async (e: React.FormEvent) => {
-    e.preventDefault(); setSaving(true); setError(null); setSuccess(null); setFormError(null);
+    e.preventDefault();
+    if (passwordForm.newPassword.length < 6) {
+      setFormError("New password must be at least 6 characters long.");
+      return;
+    }
+    setSaving(true);
+    setError(null);
+    setSuccess(null);
+    setFormError(null);
     try {
       await api.put("/users/change-password", passwordForm);
       setSuccess("Password changed successfully!");
@@ -82,11 +117,16 @@ export default function Profile() {
       setPasswordForm({ currentPassword: "", newPassword: "" });
     } catch (err: any) {
       setFormError(err.response?.data?.message || err.message || "Failed to change password.");
-    } finally { setSaving(false); }
+    } finally {
+      setSaving(false);
+    }
   };
 
   const handleDelete = async () => {
-    setSaving(true); setError(null); setSuccess(null); setFormError(null);
+    setSaving(true);
+    setError(null);
+    setSuccess(null);
+    setFormError(null);
     try {
       await api.delete("/users/profile");
       localStorage.removeItem("token");
@@ -116,7 +156,7 @@ export default function Profile() {
           </FadeIn>
         </div>
       ) : (
-        <div className="min-h-screen pt-28 pb-24 relative z-10">
+        <div className="min-h-screen pt-28 pb-32 relative z-10">
           <div className="mx-auto max-w-3xl px-4 sm:px-6 lg:px-8">
 
             {/* Header */}
@@ -151,104 +191,127 @@ export default function Profile() {
               )}
             </AnimatePresence>
 
-            {/* Identity Card */}
-            <FadeUp delay={0.06} className="rounded-2xl border border-border/40 bg-secondary/5 p-6 sm:p-8 mb-4 text-center sm:text-left group transition-all duration-300 hover:bg-secondary/10">
-              <div className="flex flex-col sm:flex-row items-center gap-4 sm:gap-6">
-                <div className="h-16 w-16 sm:h-20 sm:w-20 rounded-full bg-foreground text-background flex items-center justify-center shrink-0 shadow-md ring-2 ring-background">
-                  <span className="text-3xl sm:text-4xl font-bold tracking-tighter">{initial}</span>
-                </div>
-                <div className="min-w-0 flex-1">
-                  <h2 className="text-2xl sm:text-3xl font-bold tracking-tight mb-2 truncate">{user?.username || "—"}</h2>
-                  <div className="flex items-center justify-center sm:justify-start gap-2.5 text-muted-foreground">
-                    <div className="h-8 w-8 rounded-xl bg-background flex items-center justify-center border border-border/40">
-                      <Mail className="h-4 w-4 opacity-70" />
+            {/* Identity Hero Card */}
+            <FadeUp delay={0.06} className="rounded-[2rem] border border-border/40 bg-gradient-to-b from-secondary/30 to-secondary/10 p-6 sm:p-8 mb-6 shadow-sm">
+              <div className="flex flex-col sm:flex-row items-center justify-between gap-6">
+                <div className="flex flex-col sm:flex-row items-center gap-5 text-center sm:text-left min-w-0">
+                  <div className="relative">
+                    <div className="h-20 w-20 rounded-full bg-foreground text-background flex items-center justify-center text-3xl font-bold tracking-tight shadow-md ring-4 ring-background">
+                      {initial}
                     </div>
-                    <span className="text-sm sm:text-base font-medium truncate">{user?.email || "—"}</span>
                   </div>
+                  <div className="min-w-0">
+                    <div className="flex items-center justify-center sm:justify-start gap-2 mb-1">
+                      <h2 className="text-2xl sm:text-3xl font-bold tracking-tight truncate">{user?.username || "—"}</h2>
+                    </div>
+                    <div className="flex items-center justify-center sm:justify-start gap-2 text-muted-foreground text-sm font-medium">
+                      <Mail className="h-3.5 w-3.5 opacity-70" />
+                      <span className="truncate">{user?.email || "—"}</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Primary Hero Actions */}
+                <div className="flex items-center gap-2.5 w-full sm:w-auto shrink-0">
+                  <Button
+                    onClick={openEdit}
+                    variant="outline"
+                    className="rounded-full h-10 px-4 text-xs font-bold flex-1 sm:flex-initial gap-2 bg-background/80 hover:bg-background"
+                  >
+                    <Pencil className="h-3.5 w-3.5" />
+                    Edit Profile
+                  </Button>
+                  <Button
+                    onClick={handleLogout}
+                    variant="ghost"
+                    className="rounded-full h-10 px-4 text-xs font-bold flex-1 sm:flex-initial gap-2 text-muted-foreground hover:text-foreground hover:bg-background/60"
+                  >
+                    <LogOut className="h-3.5 w-3.5" />
+                    Sign Out
+                  </Button>
                 </div>
               </div>
             </FadeUp>
 
-            {/* Details — staggered rows */}
-            <FadeUp delay={0.12} className="rounded-[2.5rem] border border-border/40 bg-background overflow-hidden mb-6 shadow-sm">
-              <StaggerContainer className="grid grid-cols-1 md:grid-cols-2 divide-y md:divide-y-0 md:divide-x divide-border/20">
-                {profileDetails.map((item, idx) => (
-                  <StaggerItem key={item.label}>
-                    <div className={`flex items-center gap-5 px-6 py-5 hover:bg-secondary/5 transition-colors duration-200 ${idx >= 4 ? "" : "md:border-b md:border-border/20"}`}>
-                      <div className="flex items-center justify-center h-11 w-11 rounded-2xl bg-secondary/20 shrink-0 border border-border/10 text-muted-foreground group-hover:text-foreground transition-colors">
-                        <item.icon className="h-5 w-5" />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-[0.15em] mb-1 opacity-60">{item.label}</p>
-                        <p className={`text-[15px] truncate ${item.mono ? "font-mono text-xs opacity-80" : "font-bold tracking-tight text-foreground/90"}`}>
-                          {item.value}
-                        </p>
-                      </div>
+            {/* Account Settings & Security Section */}
+            <div className="space-y-4 mb-6">
+              {/* Account Information Card */}
+              <FadeUp delay={0.12} className="rounded-[1.75rem] border border-border/40 bg-background/60 p-6 sm:p-7 shadow-sm">
+                <div className="flex items-center gap-3 mb-5 pb-4 border-b border-border/30">
+                  <div className="h-9 w-9 rounded-xl bg-secondary/80 flex items-center justify-center text-muted-foreground">
+                    <User className="h-4 w-4" />
+                  </div>
+                  <div>
+                    <h3 className="font-bold text-base tracking-tight">Account Information</h3>
+                    <p className="text-xs text-muted-foreground font-medium">Personal account details and identifiers</p>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="p-4 rounded-2xl bg-secondary/20 border border-border/20">
+                    <p className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider mb-1">Username</p>
+                    <p className="text-sm font-semibold text-foreground truncate">{user?.username || "—"}</p>
+                  </div>
+                  <div className="p-4 rounded-2xl bg-secondary/20 border border-border/20">
+                    <p className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider mb-1">Email Address</p>
+                    <p className="text-sm font-semibold text-foreground truncate">{user?.email || "—"}</p>
+                  </div>
+                  <div className="p-4 rounded-2xl bg-secondary/20 border border-border/20">
+                    <p className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider mb-1">Security Session</p>
+                    <p className="text-sm font-semibold text-foreground flex items-center gap-1.5">
+                      <ShieldCheck className="h-4 w-4 text-emerald-500" /> JWT-Authenticated
+                    </p>
+                  </div>
+                  <div className="p-4 rounded-2xl bg-secondary/20 border border-border/20">
+                    <p className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider mb-1">Workspace</p>
+                    <p className="text-sm font-semibold text-foreground">Personal Directory</p>
+                  </div>
+                </div>
+              </FadeUp>
+
+              {/* Password & Security Card */}
+              <FadeUp delay={0.16} className="rounded-[1.75rem] border border-border/40 bg-background/60 p-6 sm:p-7 shadow-sm">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                  <div className="flex items-center gap-3">
+                    <div className="h-9 w-9 rounded-xl bg-secondary/80 flex items-center justify-center text-muted-foreground shrink-0">
+                      <Key className="h-4 w-4" />
                     </div>
-                  </StaggerItem>
-                ))}
-              </StaggerContainer>
-            </FadeUp>
-
-            {/* Main Actions */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
-              <FadeUp delay={0.15} className="h-full">
-                <button
-                  onClick={openEdit}
-                  className="w-full h-full flex flex-col items-center justify-center p-6 rounded-3xl border border-border/40 bg-background/50 hover:bg-secondary/20 hover:border-border/60 transition-all duration-300 shadow-sm hover:shadow-md group active:scale-95"
-                >
-                  <div className="h-10 w-10 rounded-full bg-secondary/80 flex items-center justify-center mb-3 group-hover:scale-110 transition-transform duration-300">
-                    <Pencil className="h-4 w-4" />
+                    <div>
+                      <h3 className="font-bold text-base tracking-tight">Password & Authentication</h3>
+                      <p className="text-xs text-muted-foreground font-medium">Keep your account secure with a strong password</p>
+                    </div>
                   </div>
-                  <span className="font-bold text-sm">Edit Profile</span>
-                </button>
+                  <Button
+                    onClick={() => { setPasswordOpen(true); setError(null); setSuccess(null); setFormError(null); }}
+                    variant="outline"
+                    className="rounded-full h-9 px-4 text-xs font-bold shrink-0 self-start sm:self-auto gap-2"
+                  >
+                    <Key className="h-3.5 w-3.5" />
+                    Change Password
+                  </Button>
+                </div>
               </FadeUp>
-              <FadeUp delay={0.18} className="h-full">
-                <button
-                  onClick={() => { setPasswordOpen(true); setError(null); setSuccess(null); setFormError(null); }}
-                  className="w-full h-full flex flex-col items-center justify-center p-6 rounded-3xl border border-border/40 bg-background/50 hover:bg-secondary/20 hover:border-border/60 transition-all duration-300 shadow-sm hover:shadow-md group active:scale-95"
-                >
-                  <div className="h-10 w-10 rounded-full bg-secondary/80 flex items-center justify-center mb-3 group-hover:scale-110 transition-transform duration-300">
-                    <Key className="h-4 w-4" />
-                  </div>
-                  <span className="font-bold text-sm">Change Password</span>
-                </button>
-              </FadeUp>
-            </div>
 
-            {/* Secondary / Destructive Actions */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
-              <FadeUp delay={0.21} className="h-full">
-                <button
-                  onClick={() => { setDeleteOpen(true); setError(null); setSuccess(null); setFormError(null); }}
-                  className="w-full flex items-center justify-between p-5 rounded-[2rem] border border-destructive/10 bg-destructive/[0.02] hover:bg-destructive/[0.05] hover:border-destructive/20 transition-all duration-300 shadow-sm group active:scale-[0.98] text-destructive/80 hover:text-destructive"
-                >
-                  <div className="flex items-center gap-4">
-                    <div className="h-10 w-10 rounded-2xl bg-destructive/10 flex items-center justify-center group-hover:scale-105 transition-transform">
+              {/* Danger Zone */}
+              <FadeUp delay={0.2} className="rounded-[1.75rem] border border-destructive/20 bg-destructive/[0.02] p-6 sm:p-7 shadow-sm">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                  <div className="flex items-center gap-3">
+                    <div className="h-9 w-9 rounded-xl bg-destructive/10 text-destructive flex items-center justify-center shrink-0">
                       <Trash2 className="h-4 w-4" />
                     </div>
-                    <div className="text-left">
-                      <p className="font-bold text-sm">Delete Account</p>
-                      <p className="text-[10px] opacity-60 font-medium uppercase tracking-wider mt-0.5">Permanent action</p>
+                    <div>
+                      <h3 className="font-bold text-base tracking-tight text-destructive">Danger Zone</h3>
+                      <p className="text-xs text-muted-foreground font-medium">Permanently delete your account and all associated contacts</p>
                     </div>
                   </div>
-                </button>
-              </FadeUp>
-              <FadeUp delay={0.24} className="h-full">
-                <button
-                  onClick={handleLogout}
-                  className="w-full flex items-center justify-between p-5 rounded-[2rem] border border-border/40 bg-secondary/10 hover:bg-secondary/20 hover:border-border/60 transition-all duration-300 shadow-sm group active:scale-[0.98]"
-                >
-                  <div className="flex items-center gap-4">
-                    <div className="h-10 w-10 rounded-2xl bg-foreground/5 flex items-center justify-center group-hover:scale-105 transition-transform">
-                      <LogOut className="h-4 w-4" />
-                    </div>
-                    <div className="text-left">
-                      <p className="font-bold text-sm text-foreground">Sign Out</p>
-                      <p className="text-[10px] text-muted-foreground font-medium uppercase tracking-wider mt-0.5">End session</p>
-                    </div>
-                  </div>
-                </button>
+                  <Button
+                    onClick={() => { setDeleteOpen(true); setError(null); setSuccess(null); setFormError(null); }}
+                    variant="outline"
+                    className="rounded-full h-9 px-4 text-xs font-bold shrink-0 self-start sm:self-auto border-destructive/30 text-destructive hover:bg-destructive hover:text-destructive-foreground transition-all"
+                  >
+                    Delete Account
+                  </Button>
+                </div>
               </FadeUp>
             </div>
 
@@ -385,5 +448,5 @@ export default function Profile() {
         </div>
       )}
     </AuthGuard>
-);
+  );
 }

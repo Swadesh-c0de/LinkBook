@@ -166,14 +166,13 @@ export default function Navbar() {
       </motion.header>
 
       {/* Mobile Bottom Nav */}
-      <motion.div
-        className="md:hidden fixed bottom-6 inset-x-0 z-50 flex justify-center px-4 pointer-events-none will-change-transform"
-        style={{ transform: "translateZ(0)" }}
-        initial={{ opacity: 0, y: 16 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5, ease: [0.23, 1, 0.32, 1], delay: 0.15 }}
-      >
-        <div className={`flex items-center justify-around w-full max-w-sm p-1.5 transition-all duration-500 ease-[cubic-bezier(0.2,1,0.3,1)] pointer-events-auto rounded-[2rem] bg-background/95 border border-border/40 shadow-md ${scrolled ? "ring-1 ring-foreground/5" : ""}`}>
+      <div className="md:hidden fixed bottom-[max(1.5rem,env(safe-area-inset-bottom,1.5rem))] inset-x-0 z-50 flex justify-center px-4 pointer-events-none">
+        <motion.div
+          className={`flex items-center justify-around w-full max-w-sm p-1.5 transition-all duration-300 pointer-events-auto rounded-[2rem] bg-background/95 border border-border/40 shadow-lg backdrop-blur-md ${scrolled ? "ring-1 ring-foreground/5" : ""}`}
+          initial={{ opacity: 0, y: 16 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.4, ease: [0.23, 1, 0.32, 1], delay: 0.1 }}
+        >
           {navLinks.map((link) => {
             const Icon = link.icon;
             const isActive = pathname === link.href;
@@ -203,8 +202,8 @@ export default function Navbar() {
             <Github className="h-5 w-5 transition-transform duration-300 group-hover:-translate-y-0.5" />
             <span className="text-[10px] sm:text-xs font-bold tracking-tight mt-0.5">GitHub</span>
           </a>
-        </div>
-      </motion.div>
+        </motion.div>
+      </div>
     </>
   );
 }

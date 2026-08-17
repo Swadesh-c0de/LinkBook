@@ -24,22 +24,36 @@ export default function Register() {
 
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (password !== confirmPassword) {
-      setError("Passwords do not match");
+    const cleanUsername = username.trim();
+    const cleanEmail = email.trim().toLowerCase();
+
+    if (!cleanUsername || !cleanEmail || !password) {
+      setError("Please fill out all fields.");
       return;
     }
+
+    if (password.length < 6) {
+      setError("Password must be at least 6 characters long.");
+      return;
+    }
+
+    if (password !== confirmPassword) {
+      setError("Passwords do not match.");
+      return;
+    }
+
     setLoading(true);
     setError("");
     setSuccess("");
     try {
-      await api.post("/users/register", { username, email, password });
+      await api.post("/users/register", { username: cleanUsername, email: cleanEmail, password });
       setSuccess("Account created successfully! Logging you in...");
 
       // Auto-login
-      const { data } = await api.post("/users/login", { email, password });
+      const { data } = await api.post("/users/login", { email: cleanEmail, password });
       localStorage.setItem("token", data.accessToken);
 
-      setTimeout(() => router.push("/"), 1500);
+      setTimeout(() => router.push("/"), 500);
     } catch (err: any) {
       setError(err.response?.data?.message || err.message || "Registration failed. Username or email may already be in use.");
     } finally {
@@ -130,12 +144,12 @@ export default function Register() {
 
                 <div className="space-y-1.5">
                   <label htmlFor="reg-password" className="text-sm font-medium">Password</label>
-                  <Input id="reg-password" type="password" placeholder="••••••••" value={password} onChange={(e) => setPassword(e.target.value)} required autoComplete="new-password" />
+                  <Input id="reg-password" type="password" placeholder="••••••••" value={password} onChange={(e) => setPassword(e.target.value)} required autoComplete="new-password" minLength={6} />
                 </div>
 
                 <div className="space-y-1.5">
                   <label htmlFor="confirm-password" className="text-sm font-medium">Confirm Password</label>
-                  <Input id="confirm-password" type="password" placeholder="••••••••" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} required autoComplete="new-password" />
+                  <Input id="confirm-password" type="password" placeholder="••••••••" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} required autoComplete="new-password" minLength={6} />
                 </div>
 
                 <Button type="submit" className="w-full" size="lg" disabled={loading}>

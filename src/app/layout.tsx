@@ -39,7 +39,28 @@ export const viewport: Viewport = {
 
 export const metadata: Metadata = {
   title: "Kontacts — Personal Contacts Manager",
-  description: "A clean and simple way to manage your personal contacts.",
+  description: "A minimal, high-performance workspace to organize your professional and personal network.",
+  keywords: ["contacts", "address book", "network", "manager", "nextjs", "typescript", "kontacts"],
+  authors: [{ name: "Swadesh Patel", url: "https://github.com/Swadesh-c0de" }],
+  creator: "Swadesh Patel",
+  metadataBase: new URL("https://kontacts.vercel.app"),
+  openGraph: {
+    title: "Kontacts — Personal Contacts Manager",
+    description: "A minimal, high-performance workspace to organize your professional and personal network.",
+    url: "https://kontacts.vercel.app",
+    siteName: "Kontacts",
+    locale: "en_US",
+    type: "website",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Kontacts — Personal Contacts Manager",
+    description: "A minimal, high-performance workspace to organize your professional and personal network.",
+  },
+  robots: {
+    index: true,
+    follow: true,
+  },
 };
 
 export default function RootLayout({

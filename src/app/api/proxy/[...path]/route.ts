@@ -41,6 +41,9 @@ async function handleRequest(request: NextRequest, pathSegments: string[]) {
 
   const headers = new Headers(request.headers);
   headers.delete('host'); 
+  if (['GET', 'HEAD'].includes(request.method)) {
+    headers.delete('content-length');
+  }
 
   try {
     const body = ['GET', 'HEAD'].includes(request.method) ? undefined : await request.arrayBuffer();
@@ -58,6 +61,11 @@ async function handleRequest(request: NextRequest, pathSegments: string[]) {
     
     responseHeaders.delete('content-encoding');
     responseHeaders.delete('transfer-encoding');
+
+    // Security headers
+    responseHeaders.set('X-Content-Type-Options', 'nosniff');
+    responseHeaders.set('X-Frame-Options', 'DENY');
+    responseHeaders.set('Referrer-Policy', 'strict-origin-when-cross-origin');
 
     if (!isNullBodyStatus && response.status >= 400 && process.env.NODE_ENV !== 'production' && responseData) {
       try {

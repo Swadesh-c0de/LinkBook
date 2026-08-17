@@ -149,3 +149,9 @@
 ::view-transition-image-pair(root) {
   isolation: isolate;
 }
+
+/* Suppress native browser password reveal icons to prevent duplicates */
+input::-ms-reveal,
+input::-ms-clear {
+  display: none;
+}
